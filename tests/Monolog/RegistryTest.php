@@ -61,6 +61,31 @@ class RegistryTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @covers Monolog\Registry::offsetSet
+     * @expectedException \InvalidArgumentException
+     */
+    public function testCanOnlyAssignLoggersToArray()
+    {
+        $reg = new Registry;
+
+        $reg['log'] = new \stdClass;
+    }
+
+    /**
+     * @covers Monolog\Registry::offsetSet
+     * @covers Monolog\Registry::offsetExists
+     */
+    public function testHasLoggerArray()
+    {
+        $reg = new Registry;
+
+        $reg['log'] = new Logger('log');
+
+        $this->assertTrue(isset($reg['log']));
+        $this->assertFalse(isset($reg['non-existant']));
+    }
+
+    /**
      * @covers Monolog\Registry::clear
      */
     public function testClearClears()
@@ -97,6 +122,22 @@ class RegistryTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @covers Monolog\Registry::offsetUnset
+     */
+    public function testArrayUnset()
+    {
+        $reg = new Registry;
+
+        $log = new Logger('log');
+
+        $reg['log'] = $log;
+
+        unset($reg['log']);
+
+        $this->assertNotSame($log, $reg['log']);
+    }
+
+    /**
      * @covers Monolog\Registry::addLogger
      * @covers Monolog\Registry::getInstance
      * @covers Monolog\Registry::__callStatic
@@ -114,12 +155,39 @@ class RegistryTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @covers Monolog\Registry::offsetSet
+     * @covers Monolog\Registry::offsetGet
+     */
+    public function testGetsSameLoggerArray()
+    {
+        $logger1 = new Logger('test1');
+        $logger2 = new Logger('test2');
+
+        $reg = new Registry;
+
+        $reg['test1'] = $logger1;
+        $reg[] = $logger2;
+
+        $this->assertSame($logger1, $reg['test1']);
+        $this->assertSame($logger2, $reg[0]);
+    }
+
+    /**
      * @expectedException \InvalidArgumentException
      * @covers Monolog\Registry::getInstance
      */
     public function testFailsOnNonExistantLogger()
     {
         Registry::getInstance('test1');
+    }
+
+    /**
+     * @covers Monolog\Registry::offsetGet
+     */
+    public function testReturnsNullOnNonExistantLoggerArray()
+    {
+        $reg = new Registry;
+        $this->assertNull($reg['non-existant']);
     }
 
     /**
@@ -130,9 +198,7 @@ class RegistryTest extends \PHPUnit_Framework_TestCase
         $log1 = new Logger('test1');
         $log2 = new Logger('test2');
 
-
         Registry::addLogger($log1, 'log');
-
         Registry::addLogger($log2, 'log', true);
 
         $this->assertSame($log2, Registry::getInstance('log'));
@@ -148,7 +214,6 @@ class RegistryTest extends \PHPUnit_Framework_TestCase
         $log2 = new Logger('test2');
 
         Registry::addLogger($log1, 'log');
-
         Registry::addLogger($log2, 'log');
     }
 }
